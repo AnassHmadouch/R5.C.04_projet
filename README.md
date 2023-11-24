@@ -2,6 +2,8 @@
 
 Projet d'analyse et d’affichages de certaines données issues de l’enquête lancée en 2023 par stackOverflow sur ses utilisateurs
 
+Assurez vous d'être sur la bonne branche pour éviter d'écraser le code d'un autre :)
+
 configuration d'un dépôt git distant :
    - git config --global user.name <username>
    - git config --global user.email <email_git>
