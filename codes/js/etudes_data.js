@@ -74,13 +74,16 @@ function revenus1Pays(res_questionnaire, pays) {
 // retourne un dictionnaire avec comme clés les noms de pays et en valeur le revenu moyen du pays en question
 function revenuMoyenParPays(res_questionnaire) {
     let salairesPays = revenusParPays(res_questionnaire)
-    let revenueMoyenPays = {}
+    listePays = []
+    listeSalaires = []
     for (let pays of Object.keys(salairesPays)) {
         let somme = salairesPays[pays].reduce((acc, nombre) => acc + nombre, 0);
         let frequence = salairesPays[pays].length;
-        revenueMoyenPays[pays] = parseFloat(somme/frequence).toFixed(2)
+        revenueMoyen = parseFloat(somme/frequence).toFixed(2)
+        listePays.push(pays)
+        listeSalaires.push(revenueMoyen)
     }
-    return revenueMoyenPays
+    return [listePays, listeSalaires]
 }
 
 // Renvoie la liste des pays
