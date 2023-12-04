@@ -40,6 +40,8 @@ function recupData(continent, functionChart) {
 function createChart(data) {
     createCountriesDropDown(data);
 
+    data = dataFiltre(data, 1000000);
+
     const [EdLevel, moyeLevel] = salaireMoyenParEducation(data);
 
     if (chart) {
@@ -102,6 +104,13 @@ function revenusParPays(res_questionnaire) {
         }
     }
     return salairesPays
+}
+
+function dataFiltre(data, threshold) {
+    return data.filter(entry => {
+        const compTotal = entry.CompTotal;
+        return compTotal === "NA" || parseFloat(compTotal) <= threshold;
+    });
 }
 
 // Renvoie le salaire moyen du pays sélectionné
