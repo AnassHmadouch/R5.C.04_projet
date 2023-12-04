@@ -40,34 +40,15 @@ function recupData(continent, functionChart) {
 function createChart(data) {
     createCountriesDropDown(data);
 
-    // Données globales (sans sélection de pays)
     const [EdLevel, moyeLevel] = salaireMoyenParEducation(data);
 
     if (chart) {
         chart.destroy();
     }
 
-    const chartData = {
-        labels: EdLevel,
-        datasets: [{
-            label: 'Moyenne par Education Level',
-            data: moyeLevel
-        }]
-    };
+    const chartConf = chartConfig(EdLevel, moyeLevel, 'Moyenne par Education Level');
 
-    const chartConfig = {
-        type: 'bar',
-        data: chartData,
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    };
-
-    chart = new Chart(document.getElementById('chart'), chartConfig);
+    chart = new Chart(document.getElementById('chart'), chartConf);
 
     // Gestion du changement de pays
     $('#select-derou_pays').on('change', function () {
@@ -80,31 +61,31 @@ function createChart(data) {
             chart.destroy();
         }
 
-        const chartDataPays = {
-            labels: EdLevelPays,
-            datasets: [{
-                label: 'Moyenne par Education Level : ' + paysSelectionne,
-                data: moyeLevelPays
-            }]
-        };
-
-        const chartConfigPays = {
-            type: 'bar',
-            data: chartDataPays,
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        };
+        const chartConfigPays = chartConfig(EdLevelPays, moyeLevelPays, 'Moyenne par Education Level : ${paysSelectionne}');
 
         chart = new Chart(document.getElementById('chart'), chartConfigPays);
     });
 }
 
-
+function chartConfig(labels, data, label) {
+    return {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    };
+}
 
 // Liste l'ensemble des salaires par pays 
 // Renvoi un dictionnaire avec comme clés les noms de pays et en valeur la liste des revenues enregistré du pays 
