@@ -30,9 +30,10 @@ function recupData(continent) {
         res_questionnaire = JSON.parse(dataString);
        // console.log(revenus1Pays(res_questionnaire, "Poland"));
         //console.log(revenuMoyenParPays(res_questionnaire));
-        console.log(listCloud(res_questionnaire));
         //console.log(ExpYear(res_questionnaire))
-        console.log(listFramework(res_questionnaire))
+        console.log(listCom(res_questionnaire));
+        console.log(listOS(res_questionnaire))
+        console.log(listMetier(res_questionnaire))
     })
 }
 
@@ -138,3 +139,52 @@ function listFramework(res_questionnaire) {
     }
     return Frameworks;
 }
+
+function listOS(res_questionnaire) {
+    let osCount = {};
+
+for (let response of res_questionnaire) {
+    let osList = response["OpSysProfessionaluse"];
+
+    if (osList && typeof osList === "string") {
+        let osArray = osList.split(';');
+        for (let os of osArray) {
+            osCount[os] = (osCount[os] || 0) + 1;
+        }
+    }
+}
+let osArray = Object.keys(osCount).map(os => ({ os, count: osCount[os] }));
+osArray.sort((a, b) => b.count - a.count);
+return osArray.slice(0, 5);
+}
+
+function listMetier(res_questionnaire) {
+    let metiers = new Set();
+    for (let res of res_questionnaire) {
+            let metier = res["DevType"];
+            if (metier && typeof metier === "string") {
+                if(metier != "NA") {
+                    metiers.add(...metier.split(';'));
+                }
+            }
+    }
+    return metiers;
+}
+
+function listCom(res_questionnaire){
+    let comCount = {};
+
+    for (let response of res_questionnaire) {
+        let comList = response["OfficeStackSyncHaveWorkedWith"];
+    
+        if (comList && typeof comList === "string") {
+            let comArray = comList.split(';');
+            for (let com of comArray) {
+                comCount[com] = (comCount[com] || 0) + 1;
+            }
+        }
+    }
+    let comArray = Object.keys(comCount).map(com => ({ com, count: comCount[com] }));
+    comArray.sort((a, b) => b.count - a.count);
+    return comArray.slice(0, 5);
+    }
