@@ -43,8 +43,6 @@ monnaies.set('YER',273.53)
 monnaies.set('ZAR',20.07)
 monnaies.set('ZMW',25.27)
 
-function convertEuro(Salaire,Monnaie) {
-    TC = monnaies.get(Monnaie);
-    Sal = Salaire/TC
-    return Sal
+function convertEuro(monnaie, salaire) {
+    return salaire/monnaies.get(monnaie);
 }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Titre de la page</title>
+    <!-- <script src="../js/tableau_Conversion.js" type="text/javascript"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/etudes_data.js" type="text/javascript"></script>
+    <script src="../js/tableau_Conversion.js" type="text/javascript"></script>
+</head>
+<body>
+    
+    <select id="selectDataset">
+        <option value="NA">survey_results_NA</option>
+        <option value="WE">survey_results_WE</option>
+    </select>
+    <div id="derou_pays"></div>
+    <script>
+        // Appel de la fonction recupData après le chargement du document
+        document.addEventListener("DOMContentLoaded", function() {
+            $('#selectDataset').on('change', function () {
+                // Récupérer la valeur sélectionnée
+                const selectedDataset = $(this).val();
+                console.log("Jeu de données sélectionné :", selectedDataset);
+                recupData(selectedDataset, createChart);
+            });
+        });
+    </script>
+    <div style = "width: 800px;"><canvas id="chart"></canvas> </div>
+</body>
+</html>
