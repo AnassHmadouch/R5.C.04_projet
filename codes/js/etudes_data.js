@@ -39,28 +39,22 @@ function recupData(continent, functionChart) {
 
 function createChart(data) {
     createCountriesDropDown(data);
-    let EdLevel = [];
-    let moyeLevel = []; 
-    let listSAlaireMean;
-    let paysSelectionne;
-    /* const salairesParEducationContinent = salaireMoyenParEducation(data);
-    console.log(salairesParEducationContinent); */
 
-    $('#select-derou_pays').on('change', function () {
-        paysSelectionne = $(this).val();
-        console.log("Pays sélectionné :", paysSelectionne);
-        listSAlaireMean = salaireMoyenParEducation(data, paysSelectionne);
-    });
-    EdLevel = listSAlaireMean[0];
-    moyeLevel = listSAlaireMean[1];
-    console.log(listSAlaireMean); 
+    // Données globales (sans sélection de pays)
+    const [EdLevel, moyeLevel] = salaireMoyenParEducation(data);
+
+    if (chart) {
+        chart.destroy();
+    }
+
     const chartData = {
         labels: EdLevel,
         datasets: [{
-            label: 'Moyenne par Education Level : ' + paysSelectionne,
+            label: 'Moyenne par Education Level',
             data: moyeLevel
         }]
     };
+
     const chartConfig = {
         type: 'bar',
         data: chartData,
@@ -73,12 +67,43 @@ function createChart(data) {
         }
     };
 
-    if (chart) {
-        chart.destroy();
-    }
-
     chart = new Chart(document.getElementById('chart'), chartConfig);
+
+    // Gestion du changement de pays
+    $('#select-derou_pays').on('change', function () {
+        const paysSelectionne = $(this).val();
+        console.log("Pays sélectionné :", paysSelectionne);
+
+        const [EdLevelPays, moyeLevelPays] = salaireMoyenParEducation(data, paysSelectionne);
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        const chartDataPays = {
+            labels: EdLevelPays,
+            datasets: [{
+                label: 'Moyenne par Education Level : ' + paysSelectionne,
+                data: moyeLevelPays
+            }]
+        };
+
+        const chartConfigPays = {
+            type: 'bar',
+            data: chartDataPays,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        };
+
+        chart = new Chart(document.getElementById('chart'), chartConfigPays);
+    });
 }
+
 
 
 // Liste l'ensemble des salaires par pays 
