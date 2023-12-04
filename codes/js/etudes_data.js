@@ -3,6 +3,8 @@ const WE = "WE";
 let continent = $("#select-continent");
 var chart;
 var ChartSalaires;
+var res_questionnaire_WE;
+var res_questionnaire_NA;
 
 const URL_DATA_NA = "../../data/survey_results_NA.JSON";
 const URL_DATA_WE = "../../data/survey_results_WE.JSON";
@@ -11,24 +13,19 @@ let DATA_NA;
 let DATA_WE;
 
 // Créer le chart lors du chargement de la page
-$(document).ready(function() {    
-    loadChart();
-})
+$(document).ready(function () {
+    ChargerData().then(function () {
+        loadChart();
+    });
+});
 
 // Permet de sélectionner le continent ainsi que la base de données à utiliser avant de mettre à jour le graphique
 function majChart() {
     continent = $("#select-continent").val();
-    let url = "";
-    if(continent==NA) {
-        url = URL_DATA_NA;
-    } else {
-        url = URL_DATA_WE;
-    }
-    let request=$.ajax({
-        type:"GET",
-        url: url
-    });
-    updateChart(url);
+    if(continent==WE)
+        updateChart(res_questionnaire_WE);
+    else   
+        updateChart(res_questionnaire_NA);
 }
 
 // Sélectionne le revenu en fonction du continent et du pays choisi
@@ -40,9 +37,8 @@ function moyenneSalairePays(SalairesPays) {
 }
 
 // Créer un chart avec les données présentes dans à l'url au format JSON 
-function loadChart(url=URL_DATA_WE) {
-    let res_questionnaire = recupData(url)
-    let [pays, salaires] = revenuMoyenParPays(res_questionnaire);
+function loadChart() {
+    let [pays, salaires] = revenuMoyenParPays(res_questionnaire_WE);
     const donnees = {
         labels: pays,
         datasets: [{
@@ -69,9 +65,35 @@ function recupData(url) {
     request.done(function (output){
         let dataString = JSON.stringify(output);
         res_questionnaire = JSON.parse(dataString);
-    })
-    return res_questionnaire;
+        loadChart(res_questionnaire)
+    });
+    return null;
 }
+
+function ChargerData() {
+    return new Promise((resolve, reject) => {
+        let request1 = $.ajax({
+            type: "GET",
+            url: URL_DATA_NA
+        });
+        request1.done(function (output) {
+            let dataString = JSON.stringify(output);
+            res_questionnaire_NA = JSON.parse(dataString);
+        });
+        let request2 = $.ajax({
+            type: "GET",
+            url: URL_DATA_WE
+        });
+        request2.done(function (output) {
+            let dataString = JSON.stringify(output);
+            res_questionnaire_WE = JSON.parse(dataString);
+        });
+        $.when(request1, request2).done(function () {
+            resolve();
+        });
+    });
+}
+
 
 // Liste l'ensemble des salaires par pays 
 // Renvoi un dictionnaire avec comme clés les noms de pays et en valeur la liste des revenues enregistré du pays 
@@ -80,10 +102,8 @@ function revenusParPays(res_questionnaire) {
     for (let res of res_questionnaire) {
         if(res["Currency"]=="NA" || res["CompTotal"]=="NA")
             continue;
-        
         if (!salairesPays.hasOwnProperty(res["Country"]))
             salairesPays[res["Country"]] = [];
-        
         let monnaie = res["Currency"].split(" ")[0];
         let montant = parseFloat(res["CompTotal"]).toFixed(2);
         salairesPays[res["Country"]].push(convertEuro(monnaie, montant));
@@ -120,9 +140,8 @@ function revenuMoyenParPays(res_questionnaire) {
     for (let pays of Object.keys(salairesPays)) {
         let somme = 0;
         for(let salaire of salairesPays[pays]){
-            if(isNaN(salaire)) {
+            if(isNaN(salaire))
                 continue;
-            }
             somme += salaire;
         }
         let frequence = salairesPays[pays].length;
@@ -131,20 +150,11 @@ function revenuMoyenParPays(res_questionnaire) {
         listeSalaires.push(revenueMoyen);
     }
     return [listePays, listeSalaires];
-    
 }
 
-function updateChart(url) {
-    let request=$.ajax({
-        type: "GET",
-        url: url
-    });
-    request.done(function (output){
-        let dataString = JSON.stringify(output);
-        res_questionnaire = JSON.parse(dataString);
-        let [pays, salaires] = revenuMoyenParPays(res_questionnaire);
-        document.ChartSalaires = ChartSalaires.data.datasets[0].data = salaires;
-        document.ChartSalaires = ChartSalaires.data.labels = pays;
-        ChartSalaires.update();
-    })
+function updateChart(res_questionnaire) {
+    let [pays, salaires] = revenuMoyenParPays(res_questionnaire);
+    document.ChartSalaires = ChartSalaires.data.datasets[0].data = salaires;
+    document.ChartSalaires = ChartSalaires.data.labels = pays;
+    ChartSalaires.update();
 }
