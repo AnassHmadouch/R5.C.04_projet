@@ -38,21 +38,21 @@
 
         var nbrTranches = document.getElementById('nbrTranches');
         nbrTranches.addEventListener('change', function () {
-            majChart()
+            majChart();
         });
 
         var continents = document.getElementById('select-continent');
         continents.addEventListener('change', function () {
-            new_res_questionnaire = whichContinent()
+            new_res_questionnaire = whichContinent();
             let select2 = $("#select-derou_pays");
             select2.find('option:not(:first)').remove();
-            createCountriesDropDown(new_res_questionnaire)
-            majChart()
+            createCountriesDropDown(new_res_questionnaire);
+            majChart();
         });
     </script>
 
     <br>
-    <div style=" width:'800px'; height:'400px'">
+    <div style="width:'800px'; height:'400px'">
         <canvas id="chart_framework"></canvas>
     </div>
 </body>

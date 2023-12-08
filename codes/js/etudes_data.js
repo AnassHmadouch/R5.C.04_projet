@@ -4,6 +4,7 @@ var SELECT_TOUS_LES_PAYS="tous"
 let continent = $("#select-continent");
 var chartMoyen;
 var chartFramework;
+var chartOS;
 var res_questionnaire_WE;
 var res_questionnaire_NA;
 
@@ -22,19 +23,28 @@ $(document).ready(function () {
     let idChart = $('canvas:first').attr('id');
     ChargerData().then(function () {
         switch (titreDeLaPage) {
+            // Page revenusMoyen.html
             case "moyenne":
                 titreDataset = 'Salaire Moyen par pays';
                 titreChart = "Salaire Moyen par pays";
-                // idChart = "chart_moyen"
                 [dataX, dataY] = revenuMoyenParPays(res_questionnaire_WE);
                 loadChart(dataX, dataY, titreDataset, titreChart, idChart);
                 break;
+            // Page revenusFrameworks.html
             case "framework":
-                titreDataset = 'Salaire Moyen des développeurs en fonction des frameworks utilisés';
-                // idChart = "chart_framework";
                 [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire_WE, SELECT_TOUS_LES_PAYS);
                 loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idChart);
-                createCountriesDropDown(res_questionnaire_WE);
+                createDropDown("select-derou_pays", listUniqueReponses(res_questionnaire_WE, "Country"));
+                break;
+            // Page revenusFrameworks.html
+            case "os":
+                titreDataset = 'OS par pays';
+                titreChart = "Top des OS les plus utilisés";
+                createDropDown("select-metier", listUniqueReponses(res_questionnaire_WE, "DevType"));
+                let metier = $("#select-metier").val();
+                [dataX, dataY, nbOS] = NbrOSParMetier(res_questionnaire_WE, metier, n=5);
+                $("#nbrElement").attr("max", nbOS);
+                loadChart(dataX, dataY, titreDataset, titreChart, idChart);
                 break;
             default:
                 titreDataset = 'Salaire Moyen';
@@ -50,21 +60,33 @@ function majChart() {
     let res_questionnaire = whichContinent()
     let titreDeLaPage = document.title;
     let chart;
+    let dataX;
+    let dataY;
     switch (titreDeLaPage) {
         // Page revenusMoyen.html
         case "moyenne":
             titreDataset = 'Salaire Moyen par pays';
             titreChart = "Salaire Moyen par pays";
-            let [dataX1, DataY1] = revenuMoyenParPays(res_questionnaire);
+            [dataX, dataY] = revenuMoyenParPays(res_questionnaire);
             chart = chartMoyen;
-            updateChart(chart, dataX1, DataY1, titreDataSet, titreChart);
+            updateChart(chart, dataX, dataY, titreDataSet, titreChart);
             break;
         // Page revenusFrameworks.html
         case "framework":
             let pays = $("#select-derou_pays").val();
-            let idchart = "chart_framework"
-            let [dataX2, DataY2, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire, pays);
-            updateChartFramework(dataX2, DataY2, salaireParTrancheAnneesExp, idchart);
+            let idchart = "chart_framework";
+            [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire, pays);
+            updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart);
+            break;
+        case "os":
+            let metier = $("#select-metier").val();
+            let n = $("#nbrElement").val();
+            titreDataset = "OS par pays";
+            titreChart = "Top des OS les plus utilisés";
+            [dataX, dataY, nbOS] = NbrOSParMetier(res_questionnaire, metier, n);
+            $("#nbrElement").attr("max", nbOS);
+            chart = chartOS;
+            updateChart(chart, dataX, dataY, titreDataSet, titreChart);
             break;
     }
 }
@@ -85,7 +107,7 @@ function whichContinent() {
 // titreDataSet sera le titre en string du dataset
 // titreChart sera le titre du graphique
 // idChart correspond à l'identifiant de la balise canvas pour le chart
-function loadChart(dataX, dataY, titreDataSet, titreChart, idChart) {
+function loadChart(dataX, dataY, titreDataSet, titreChart, idChart, type="bar") {
     const donnees = {
         labels: dataX,
         datasets: [{
@@ -106,12 +128,19 @@ function loadChart(dataX, dataY, titreDataSet, titreChart, idChart) {
         }
     };
     let config = {
-        type: 'bar',
+        type: type,
         data: donnees,
         options: options
     };
     let chart = document.getElementById(idChart);
-    chartMoyen = new Chart(chart, config);
+    switch(idChart){
+        case "chart_moyen":
+            chartMoyen = new Chart(chart, config);
+            break;
+        case "chart_OS":
+            chartOS = new Chart(chart, config);
+            break;
+    }
 }
 
 // Charge les deux fichier (NA, WE) de données json sur le questionnaire (survey)
@@ -185,8 +214,10 @@ function revenuMoyenParPays(res_questionnaire) {
 // titreDataSet sera le titre en string du dataset
 // titreChart sera le titre du graphique
 function updateChart(chart, dataX, dataY, titreDataSet, titreChart) {
-    chart.options.plugins.title.text = titreChart
-    chart.data.datasets[0].label = titreDataSet
+    if(titreDataSet)
+        chart.options.plugins.title.text = titreChart;
+    if(titreChart)
+        chart.data.datasets[0].label = titreDataSet;
     chart.data.datasets[0].data = dataY;
     chart.data.labels = dataX;
     chart.update();
@@ -255,7 +286,6 @@ function revenusParFrameworkEtPaysParTrancheExp(res_questionnaire, pays) {
         salaireParTrancheAnneesExp[i]["max"] = end;
         salaireParTrancheAnneesExp[i]["values"] = {};
     }
-
     for (let res of res_questionnaire) {
         // Si pas de pays/salaire/monnaie/annéeExp renseigné ou que pays non selectionné alors on passe
         if(pays==null || (res["Country"]!=pays && pays!=SELECT_TOUS_LES_PAYS) || res["Currency"]=="NA" || res["CompTotal"]=="NA" || res["WorkExp"]=="NA")
@@ -352,22 +382,11 @@ function loadRadarChart(salaireParTrancheAnneesExp, frameworks, salaireMoyen, id
     chartFramework = new Chart(chart, config);
 }
 
-// Renvoie la liste des pays
-function listPays(res_questionnaire) {
-    let pays = [];
-    for (let res of res_questionnaire) {
-        pays.push(res["Country"]);
-    }
-    let ensemblePaysUnique = new Set(pays);
-    let paysUnique = Array.from(ensemblePaysUnique);
-    return paysUnique;
-}
-
 // Permet de créer et mettre à jour la liste des pays de la balise select(dropdown) à l'identifiant select-derou_pays.
 // La liste des pays est calculé en fonction du questionnaire (res_questionnaire) choisi (NA ou WE)
 function createCountriesDropDown(res_questionnaire) {
     let select = document.getElementById("select-derou_pays");
-    let countries = listPays(res_questionnaire);
+    let countries = listUniqueReponses(res_questionnaire, "Country");
     countries.forEach((country) => {
         let option = document.createElement('option');
         option.value = country;
@@ -376,3 +395,82 @@ function createCountriesDropDown(res_questionnaire) {
     });
 }
 
+// Permet de lister les réponses d'une question en supprimant les doublons.
+// titreQuestion est un string faisant référence à une cle dans les dictionnaires de res_questionnaire
+// Retourne une liste
+function listUniqueReponses(res_questionnaire, titreQuestion) {
+    let ReponsesUnique = new Set();
+    for (let res of res_questionnaire) {
+        let reponse = res[titreQuestion];
+        if (ReponsesUnique && typeof reponse === "string") {
+            if(reponse!="NA" || reponse!="" || !isNaN(reponse))
+                ReponsesUnique.add(reponse);
+        }
+    }
+    return Array.from(ReponsesUnique);
+}
+
+// À partir d'une liste créer un dictionnaire. 
+// Les éléments sont transformés en clé. On affecte le numérique 0 à chaque clé si list false sinon on affecte une list vide
+// Retourne le dictionnaire
+function listToDic(list, num) {
+    let dic = {};
+    for(elem of list) {
+        if(!dic.hasOwnProperty(elem)){
+            if(num) {
+                dic[elem]=0;
+            }else {
+                dic[elem]=[];
+            }
+        }
+    }
+    return dic;
+}
+
+// Prend un dictionnaire en paramètre.
+// Extrait deux listes. Une liste pour les clés et une liste pour les valeurs.
+// Retourne les listes triées par ordre décroissant. 
+// Chaque indice dans une liste correspond à la clé ou à la valeur de l'autre liste au même indice.
+function trierDictionnaireToList(dictionnaire){
+    let dictionnaireV2 = Object.entries(dictionnaire);
+    dictionnaireV2.sort(function(a, b) {
+        return b[1] - a[1];
+    });
+    let listCleesTriees = dictionnaireV2.map(function(entry) {
+        return entry[0];
+    });
+    let ListValeursTriees = dictionnaireV2.map(function(entry) {
+        return entry[1];
+    });
+    return [listCleesTriees, ListValeursTriees]
+}
+
+// Permet de calculer le nombre d'os en fonction d'un métier.
+// Renvoie 1 listes. Indice 1 : liste des os utilisé dans ce métier. Indice 2 nbr utilisateurs de l'os
+function NbrOSParMetier(res_questionnaire, metier, n){
+    let nbOS= {};
+    for (let res of res_questionnaire) {
+        if(res["OpSysProfessionaluse"]=="NA" || res["DevType"]=="NA" || res["DevType"]=="" || res["OpSysProfessionaluse"]=="" || res["DevType"]!=metier)
+            continue;
+        let listOS= res["OpSysProfessionaluse"].split(';'); //Les OS d'une personne
+        for(os of listOS) {
+            if(!nbOS.hasOwnProperty(os))
+                nbOS[os]=0;
+            nbOS[os]+=1;
+        }
+    }
+    let [listeOS, nbOSTriees] = trierDictionnaireToList(nbOS)
+    return [listeOS.slice(0,n), nbOSTriees.slice(0,n), listeOS.length];
+}
+
+// Permet de créer généré les la liste d'informations présent dans un menu déroulant (dropdown).
+// Il faut la list d'informations et l'identifiant de la balise html select.
+function createDropDown(id, list) {
+    let select = document.getElementById(id);
+    list.forEach((elem) => {
+        let option = document.createElement('option');
+        option.value = elem;
+        option.text = elem;
+        select.appendChild(option);
+    });
+}
