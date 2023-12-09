@@ -49,7 +49,7 @@ $(document).ready(function () {
                 loadChart(dataX, dataY, titreDataset, titreChart, idChart);
                 break;
             case "outils_com":
-                titreDataset = "Outils de communication par pays";
+                titreDataset = "Outils de communication par métier";
                 titreChart = "Top des Outils de communication les plus utilisés";
                 createDropDown("select-metier", listUniqueReponses(res_questionnaire_WE, "DevType"));
                 let metier_comm = $("#select-metier").val();
@@ -109,7 +109,7 @@ function majChart() {
         case "outils_com":
             let metier_comm = $("#select-metier").val();
             let n_comm = $("#nbrElement").val();
-            titreDataset = "Outils de communication par pays";
+            titreDataset = "Outils de communication par métier";
             titreChart = "Top des Outils de communication les plus utilisés";
             [dataX, dataY, nbOutilsCom] = NbrOutilsComParMetier(res_questionnaire, metier_comm, n_comm);
             $("#nbrElement").attr("max", nbOutilsCom);
@@ -547,8 +547,8 @@ function NbrOutilsComParMetier(res_questionnaire, metier, n){
 }
 
 // Calcule le salaire moyen par niveau d'éducation pour un pays donné ou tous les pays
-// res_questionnaire: dataset contenant les données sur les salaires et le niveau education
-// pays: pays spécifique pour lequel calculer le salaire moyen (par défaut: tous les pays)
+// res_questionnaire : dataset contenant les données sur les salaires et le niveau education
+// pays : pays spécifique pour lequel calculer le salaire moyen (par défaut: tous les pays)
 function salaireMoyenParEducationPays(res_questionnaire, pays = SELECT_TOUS_LES_PAYS) {
     let salairesPays;
 
