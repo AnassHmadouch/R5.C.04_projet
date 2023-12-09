@@ -83,8 +83,6 @@ $(document).ready(function () {
 
 // Permet de sélectionner le bon graphique ainsi que les bonnes données à mettre à jour en fonction de la page de l'utilisateur. 
 function majChart() {
-    let titreDataSet;
-    let titreChart;
     let res_questionnaire = whichContinent()
     let titreDeLaPage = document.title;
     let chart;
@@ -141,7 +139,7 @@ function majChart() {
     }
 }
 
-// Retourne le dataset json en fonction du continent choisi
+// Retourne le dataset json en fonction du continent sélectionné dans l'id select-continent
 function whichContinent() {
     continent = $("#select-continent").val();
     if(continent==WE){
@@ -154,7 +152,11 @@ function whichContinent() {
 // Filtrer les données en fonction d'un seuil de salaire
 // Renvoie un nouveau dataset contenant uniquement les données dont le salaire ne dépasse pas le seuil fixé
 function dataFiltre(data, seuil) {
-    return data.filter(entry => {
+    let dataSansTabulation = data.filter(entry => {
+        const pays = entry.Country;
+        return pays.replace(/\t/g, ' ');
+    });
+    return dataSansTabulation.filter(entry => {
         const compTotal = entry.CompTotal;
         return compTotal === "NA" || parseFloat(compTotal) <= seuil;
     });
@@ -531,8 +533,9 @@ function NbrOSParMetier(res_questionnaire, metier, n){
     return [listeOS.slice(0,n), nbOSTriees.slice(0,n), listeOS.length];
 }
 
-// Permet de créer généré les la liste d'informations présent dans un menu déroulant (dropdown).
-// Il faut la list d'informations et l'identifiant de la balise html select.
+// Permet de généré la liste d'informations présente dans un menu déroulant (dropdown).
+// Il faut la liste d'informations et l'identifiant de la balise html select.
+// id est un string
 function createDropDown(id, list) {
     let select = document.getElementById(id);
     list.forEach((elem) => {
