@@ -510,6 +510,3 @@ function createDropDown(id, list) {
         select.appendChild(option);
     });
 }
-
-// Revenu moyen en fonction platform cloud et filtre sur nbr années exp, continent, pays
-
