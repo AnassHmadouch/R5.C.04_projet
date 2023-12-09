@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <title>moyenne</title>
+        <!-- <script src="../js/tableau_Conversion.js" type="text/javascript"></script> -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <script src="../js/etudes_data.js" type="text/javascript"></script>
+        <script src="../js/tableau_Conversion.js" type="text/javascript"></script>
+    </head>
+    <body>
+        <div>
+            <label for="select-continent">Sélectionné un continent:</label>
+            <select name="continents" id="select-continent">
+                <option value="WE">Europe de l'Ouest</option>
+                <option value="NA">Amérique du Nord</option>
+            </select>
+        </div>
+        <br>
+        <script>  
+            var continents = document.getElementById('select-continent');
+            continents.addEventListener('change', function () {
+                majChart()
+            });
+        </script>
+        <div style=" width:'800px'; height:'400px'">
+            <canvas id="chart_moyen"></canvas>
+        </div>
+    </body>
+</html>
