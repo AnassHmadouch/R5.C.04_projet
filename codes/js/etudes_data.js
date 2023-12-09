@@ -5,6 +5,7 @@ let continent = $("#select-continent");
 var chartMoyen;
 var chartFramework;
 var chartOS;
+var chartCloud;
 var res_questionnaire_WE;
 var res_questionnaire_NA;
 
@@ -21,6 +22,7 @@ $(document).ready(function () {
     let titreDataset;
     let dataX;
     let dataY;
+    let labelQuestion;
     let idChart = $('canvas:first').attr('id');
     ChargerData().then(function () {
         switch (titreDeLaPage) {
@@ -33,8 +35,10 @@ $(document).ready(function () {
                 break;
             // Page revenusFrameworks.html
             case "framework":
-                [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire_WE, SELECT_TOUS_LES_PAYS);
-                loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idChart);
+                titreChart = "Salaire moyen en euro des développeurs par framework et par tranche d'expérience";
+                labelQuestion = "WebframeHaveWorkedWith";
+                [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParXEtTrancheExp(res_questionnaire_WE, labelQuestion, SELECT_TOUS_LES_PAYS);
+                loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idChart, titreChart);
                 createDropDown("select-derou_pays", listUniqueReponses(res_questionnaire_WE, "Country"));
                 break;
             // Page revenusFrameworks.html
@@ -46,6 +50,13 @@ $(document).ready(function () {
                 [dataX, dataY, nbOS] = NbrOSParMetier(res_questionnaire_WE, metier, n=5);
                 $("#nbrElement").attr("max", nbOS);
                 loadChart(dataX, dataY, titreDataset, titreChart, idChart);
+                break;
+            case "cloud":
+                titreChart = "Salaire moyen en euro des développeurs par cloud platform et par tranche d'expérience";
+                labelQuestion = "PlatformHaveWorkedWith";
+                [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParXEtTrancheExp(res_questionnaire_WE, labelQuestion, SELECT_TOUS_LES_PAYS);
+                loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idChart, titreChart);
+                createDropDown("select-derou_pays", listUniqueReponses(res_questionnaire_WE, "Country"));
                 break;
             default:
                 titreDataset = 'Salaire Moyen';
@@ -63,6 +74,9 @@ function majChart() {
     let chart;
     let dataX;
     let dataY;
+    let pays;
+    let idchart;
+    let labelQuestion;
     switch (titreDeLaPage) {
         // Page revenusMoyen.html
         case "moyenne":
@@ -72,9 +86,10 @@ function majChart() {
             break;
         // Page revenusFrameworks.html
         case "framework":
-            let pays = $("#select-derou_pays").val();
-            let idchart = "chart_framework";
-            [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire, pays);
+            pays = $("#select-derou_pays").val();
+            idchart = "chart_framework";
+            labelQuestion = "WebframeHaveWorkedWith";
+            [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParXEtTrancheExp(res_questionnaire, labelQuestion, pays);
             updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart);
             break;
         // Page TopOS.html
@@ -85,6 +100,13 @@ function majChart() {
             $("#nbrElement").attr("max", nbOS);
             chart = chartOS;
             updateChart(chart, dataX, dataY);
+            break;
+        case "cloud":
+            pays = $("#select-derou_pays").val();
+            idchart = "chart_cloud";
+            labelQuestion = "PlatformHaveWorkedWith";
+            [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParXEtTrancheExp(res_questionnaire, labelQuestion, pays);
+            updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart);
             break;
     }
 }
@@ -223,9 +245,17 @@ function updateChart(chart, dataX, dataY, titreDataSet, titreChart) {
 
 // Met à jour le chart des frameworks
 function updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart) {
-    if(chartFramework)
+    let titreChart;
+    if(chartFramework){
         chartFramework.destroy();
-    loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idchart);
+        titreChart = "Salaire moyen en euro des développeurs par framework et par tranche d'expérience";
+        loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idchart, titreChart);
+    }
+    if(chartCloud){
+        chartCloud.destroy()
+        titreChart = "Salaire moyen en euro des développeurs par cloud platform et par tranche d'expérience";
+        loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idchart, titreChart);
+    }
 }
 
 // Liste sans doublons des différentes années expériences par ordre croissant
@@ -260,17 +290,33 @@ function listFramework(res_questionnaire) {
     return Frameworks;
 }
 
+// Permet de lister les réponses d'une question en supprimant les doublons.
+// titreQuestion est un string faisant référence à une cle dans les dictionnaires de res_questionnaire
+// Retourne une liste
+function listUniqueReponses(res_questionnaire, titreQuestion) {
+    let ReponsesUnique = new Set();
+    for (let res of res_questionnaire) {
+        let reponse = res[titreQuestion];
+        if (ReponsesUnique && typeof reponse === "string") {
+            if(reponse!="NA")
+                ReponsesUnique.add(...reponse.split(';'));
+        }
+    }
+    return Array.from(ReponsesUnique);
+}
+
 // Le paramètre pays permet de sélectionner un pays. Peut avoir la valeur SELECT_TOUS_LES_PAYS ("tous") pour sélectionner tous les pays d'un continent
 // Le paramètre res_questionnaire correspond à l'ensemble des résultats d'un des deux questionnaire survey_results_NA/WE.json. 
+// Le paramètre x correspond au label d'une question du questionnaire.
 // Le questionnaire est choisi en fonction de la valeur sélectionné dans le dropdown select-continents
 // retourne une liste avec à l'indice 0 : salaireParTrancheAnneesExp et l'indice 1 : nbrGroupe
 // nbrGroupe correspond au nombre de tranche d'âge sélectionné dans l'input number nbrTranches du DOM
 // salaireParTrancheAnneesExp est un dictionnaire avec comme clés les numéro de groupe de tranche d'expérience 
 // (exemple, si 2 tranches sélectionnées alors deux clé : 0 et 1)
 // Chaque clé se voit associer un dictionnaire ayant comme clé min, max et values. min et max sont les bornes des tranches d'expériences.
-// values est un nouveau dictionnaire contennant pour chaque clé le nom d'un framework.
-// Chaque valeur du framework contient la liste des salaires(en €) d'un développeur associé à sa tranche d'expérience et son pays(si sélectionné sinon continent)
-function revenusParFrameworkEtPaysParTrancheExp(res_questionnaire, pays) {
+// values est un nouveau dictionnaire contennant pour chaque clé le nom des réponses de x.
+// Chaque valeur des réponses contient la liste des salaires(en €) d'un développeur associé à sa tranche d'expérience et son pays(si sélectionné sinon continent)
+function revenusParXEtPaysParTrancheExp(res_questionnaire, pays, x) {
     let allAnneesExp = ExpYear(res_questionnaire);
     const nbrGroupe = $("#nbrTranches").val();
     let maxAnneesExp = Math.max(...allAnneesExp);
@@ -291,14 +337,14 @@ function revenusParFrameworkEtPaysParTrancheExp(res_questionnaire, pays) {
         let anneesExp = parseInt(res["WorkExp"]);
         let monnaie = res["Currency"].split(" ")[0];
         let montant = parseFloat(res["CompTotal"]).toFixed(2);
-        for(let framework of res["WebframeHaveWorkedWith"].split(';')) {
-            if(framework=="NA")
+        for(let reponse of res[x].split(';')) {
+            if(reponse=="NA")
                 continue;
             for(let groupeExp=0; groupeExp<nbrGroupe; groupeExp++) {
                 if( (anneesExp<=salaireParTrancheAnneesExp[groupeExp]["max"]) && (anneesExp>=salaireParTrancheAnneesExp[groupeExp]["min"]) ){
-                    if (!salaireParTrancheAnneesExp[groupeExp]["values"].hasOwnProperty(framework))
-                        salaireParTrancheAnneesExp[groupeExp]["values"][framework] = [];
-                    salaireParTrancheAnneesExp[groupeExp]["values"][framework].push(convertEuro(monnaie, montant));
+                    if (!salaireParTrancheAnneesExp[groupeExp]["values"].hasOwnProperty(reponse))
+                        salaireParTrancheAnneesExp[groupeExp]["values"][reponse] = [];
+                    salaireParTrancheAnneesExp[groupeExp]["values"][reponse].push(convertEuro(monnaie, montant));
                     break;
                 }
             }
@@ -307,33 +353,33 @@ function revenusParFrameworkEtPaysParTrancheExp(res_questionnaire, pays) {
     return [salaireParTrancheAnneesExp, nbrGroupe]
 }
 
-
-// liste de framework par tranche d'expérience. Donc autant de liste que de tranche d'exp
-// Liste des revenus moyens des dévellopeurs en fonction du framework et de sa tranche. Donc autant de liste que de tranche d'exp
-function revenusMoyenParFrameworkTrancheExp(res_questionnaire, pays=SELECT_TOUS_LES_PAYS) {
-    let [salaireParTrancheAnneesExp, nbrGroupe] = revenusParFrameworkEtPaysParTrancheExp(res_questionnaire, pays);
-    let listeFrameworks = Array.from(listFramework(res_questionnaire));
+// liste de des réponses d'une question x par tranche d'expérience. Donc autant de liste que de tranche d'exp
+// Liste des revenus moyens des dévellopeurs en fonction des réponses d'une question x et de sa tranche. Donc autant de liste que de tranche d'exp
+function revenusMoyenParXEtTrancheExp(res_questionnaire, x, pays=SELECT_TOUS_LES_PAYS) {
+    let [salaireParTrancheAnneesExp, nbrGroupe] = revenusParXEtPaysParTrancheExp(res_questionnaire, pays, x);
+    let listeX = listUniqueReponses(res_questionnaire, x);
     let listeSalairesParTranche = [];
     for(let groupeExp=0; groupeExp<nbrGroupe; groupeExp++) {
         let listeSalaires = [];
-        for (let framework of listeFrameworks) {
+        for (let elemX of listeX) {
             let somme = 0;
-            if(!salaireParTrancheAnneesExp[groupeExp]["values"].hasOwnProperty(framework)){
+            if(!salaireParTrancheAnneesExp[groupeExp]["values"].hasOwnProperty(elemX)){
                 listeSalaires.push(parseFloat("0.00"));
                 continue;
             }
-            for(let salaire of salaireParTrancheAnneesExp[groupeExp]["values"][framework]){
+            for(let salaire of salaireParTrancheAnneesExp[groupeExp]["values"][elemX]){
                 if(isNaN(salaire))
                     continue;
                 somme += salaire;
             }
-            let frequence = salaireParTrancheAnneesExp[groupeExp]["values"][framework].length;
+            let frequence = salaireParTrancheAnneesExp[groupeExp]["values"][elemX].length;
             let revenueMoyen = parseFloat(somme/frequence).toFixed(2);
             listeSalaires.push(parseFloat(revenueMoyen));
         }
         listeSalairesParTranche.push(listeSalaires);
     }
-    return [listeFrameworks, listeSalairesParTranche, salaireParTrancheAnneesExp];
+    
+    return [listeX, listeSalairesParTranche, salaireParTrancheAnneesExp];
 }
 
 // Création des différents dataset du chart en fonction des tranches d'âges (utilisé pour la page revenusFrameWork.html)
@@ -360,24 +406,31 @@ function creationDatasetFramework(salaireParTrancheAnneesExp, salaireMoyen) {
 // frameworks c'est une liste de frameworks
 // salaireMoyen est une liste contenant. Chaque élément est une liste correspondant à une tranche d'âge. 
 // Chaque élément des tranches d'âges correspondent à la moyenne des salaires des développeurs d'un pays(si selectionné) en euro par framework.
-function loadRadarChart(salaireParTrancheAnneesExp, frameworks, salaireMoyen, idchart) {
+function loadRadarChart(salaireParTrancheAnneesExp, frameworks, salaireMoyen, idChart, titreChart, ) {
     data_DataSets = creationDatasetFramework(salaireParTrancheAnneesExp, salaireMoyen);
     const donnees = {
         labels: frameworks,
         datasets: data_DataSets
-    };
+    }
     const options = { 
         responsive: true, 
         scales: { y: { beginAtZero: true }},
         plugins: {
             title: { display: true,
-                text: "Salaire moyen en euro des développeurs par framework et par tranche d'expérience"
+                text: titreChart
             }
         }
-    };
+    }
     let config = {type: 'radar', data: donnees, options: options};
-    let chart = document.getElementById(idchart);
-    chartFramework = new Chart(chart, config);
+    let chart = document.getElementById(idChart);
+    switch(idChart){
+        case "chart_framework":
+            chartFramework = new Chart(chart, config);
+            break;
+        case "chart_cloud":
+            chartCloud = new Chart(chart, config);
+            break;       
+    }
 }
 
 // Permet de créer et mettre à jour la liste des pays de la balise select(dropdown) à l'identifiant select-derou_pays.
@@ -391,21 +444,6 @@ function createCountriesDropDown(res_questionnaire) {
         option.text = country;
         select.appendChild(option);
     });
-}
-
-// Permet de lister les réponses d'une question en supprimant les doublons.
-// titreQuestion est un string faisant référence à une cle dans les dictionnaires de res_questionnaire
-// Retourne une liste
-function listUniqueReponses(res_questionnaire, titreQuestion) {
-    let ReponsesUnique = new Set();
-    for (let res of res_questionnaire) {
-        let reponse = res[titreQuestion];
-        if (ReponsesUnique && typeof reponse === "string") {
-            if(reponse!="NA" || reponse!="" || !isNaN(reponse))
-                ReponsesUnique.add(reponse);
-        }
-    }
-    return Array.from(ReponsesUnique);
 }
 
 // À partir d'une liste créer un dictionnaire. 
@@ -472,3 +510,6 @@ function createDropDown(id, list) {
         select.appendChild(option);
     });
 }
+
+// Revenu moyen en fonction platform cloud et filtre sur nbr années exp, continent, pays
+
