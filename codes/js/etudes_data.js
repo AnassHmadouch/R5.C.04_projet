@@ -16,6 +16,7 @@ let DATA_WE;
 
 // Créer un chart lors du chargement de la page. Le chart dépend de la page en question
 $(document).ready(function () {
+    $("nav").load("navbar.html");
     let titreDeLaPage = document.title;
     let titreDataset;
     let dataX;
@@ -65,11 +66,9 @@ function majChart() {
     switch (titreDeLaPage) {
         // Page revenusMoyen.html
         case "moyenne":
-            titreDataset = 'Salaire Moyen par pays';
-            titreChart = "Salaire Moyen par pays";
             [dataX, dataY] = revenuMoyenParPays(res_questionnaire);
             chart = chartMoyen;
-            updateChart(chart, dataX, dataY, titreDataSet, titreChart);
+            updateChart(chart, dataX, dataY);
             break;
         // Page revenusFrameworks.html
         case "framework":
@@ -78,15 +77,14 @@ function majChart() {
             [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParFrameworkTrancheExp(res_questionnaire, pays);
             updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart);
             break;
+        // Page TopOS.html
         case "os":
             let metier = $("#select-metier").val();
             let n = $("#nbrElement").val();
-            titreDataset = "OS par pays";
-            titreChart = "Top des OS les plus utilisés";
             [dataX, dataY, nbOS] = NbrOSParMetier(res_questionnaire, metier, n);
             $("#nbrElement").attr("max", nbOS);
             chart = chartOS;
-            updateChart(chart, dataX, dataY, titreDataSet, titreChart);
+            updateChart(chart, dataX, dataY);
             break;
     }
 }
