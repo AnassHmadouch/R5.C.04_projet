@@ -1,16 +1,17 @@
-const NA = "NA";
-const WE = "WE";
+const URL_DATA_NA = "../../data/survey_results_NA.JSON";
+const URL_DATA_WE = "../../data/survey_results_WE.JSON";
+
 var SELECT_TOUS_LES_PAYS="tous"
-let continent = $("#select-continent");
+var continent = $("#select-continent");
 var chartMoyen;
 var chartFramework;
 var chartOS;
 var chartCloud;
 var res_questionnaire_WE;
 var res_questionnaire_NA;
-
-const URL_DATA_NA = "../../data/survey_results_NA.JSON";
-const URL_DATA_WE = "../../data/survey_results_WE.JSON";
+var chartOutilsCom;
+var chartMoyEduLevel;
+var seuilMonetaire = 1000000;
 
 let DATA_NA;
 let DATA_WE;
@@ -58,9 +59,22 @@ $(document).ready(function () {
                 loadRadarChart(salaireParTrancheAnneesExp, dataX, dataY, idChart, titreChart);
                 createDropDown("select-derou_pays", listUniqueReponses(res_questionnaire_WE, "Country"));
                 break;
-            default:
-                titreDataset = 'Salaire Moyen';
-                [dataX, dataY] = revenuMoyenParPays(res_questionnaire_WE);
+            case "outils_com":
+                titreDataset = "Outils de communication par métier";
+                titreChart = "Top des Outils de communication les plus utilisés";
+                createDropDown("select-metier", listUniqueReponses(res_questionnaire_WE, "DevType"));
+                let metier_comm = $("#select-metier").val();
+                [dataX, dataY, nbOutilsCom] = NbrOSParMetier(res_questionnaire_WE, metier_comm, n=5);
+                $("#nbrElement").attr("max", nbOutilsCom);
+                loadChart(dataX, dataY, titreDataset, titreChart, idChart);
+                break;
+            case "moyenne_nv_etude":
+                titreDataset = 'Salaire Moyen par etude';
+                titreChart = "Salaire Moyen par etude";
+                createDropDown("select-derou_pays", listUniqueReponses(res_questionnaire_WE, "Country"));
+                [dataX, dataY] = salaireMoyenParEducationPays(res_questionnaire_WE, SELECT_TOUS_LES_PAYS);
+                loadChart(dataX, dataY, titreDataset, titreChart, idChart);
+                break;
         }
     });
 });
@@ -108,6 +122,20 @@ function majChart() {
             [dataX, dataY, salaireParTrancheAnneesExp] = revenusMoyenParXEtTrancheExp(res_questionnaire, labelQuestion, pays);
             updateChartFramework(dataX, dataY, salaireParTrancheAnneesExp, idchart);
             break;
+        case "outils_com":
+            let metier_comm = $("#select-metier").val();
+            let n_comm = $("#nbrElement").val();
+            [dataX, dataY, nbOutilsCom] = NbrOutilsComParMetier(res_questionnaire, metier_comm, n_comm);
+            $("#nbrElement").attr("max", nbOutilsCom);
+            chart = chartOutilsCom;
+            updateChart(chart, dataX, dataY);
+            break;
+        case "moyenne_nv_etude":
+            let pays_edu = $("#select-derou_pays").val();
+            [dataX, dataY] = salaireMoyenParEducationPays(res_questionnaire, pays_edu);
+            chart = chartMoyEduLevel;
+            updateChart(chart, dataX, dataY);
+            break;
     }
 }
 
@@ -119,6 +147,15 @@ function whichContinent() {
     } else{
         return res_questionnaire_NA;
     }
+}
+
+// Filtrer les données en fonction d'un seuil de salaire
+// Renvoie un nouveau dataset contenant uniquement les données dont le salaire ne dépasse pas le seuil fixé
+function dataFiltre(data, seuil) {
+    return data.filter(entry => {
+        const compTotal = entry.CompTotal;
+        return compTotal === "NA" || parseFloat(compTotal) <= seuil;
+    });
 }
 
 // Créer un chart avec un seul dataset
@@ -160,6 +197,12 @@ function loadChart(dataX, dataY, titreDataSet, titreChart, idChart, type="bar") 
         case "chart_OS":
             chartOS = new Chart(chart, config);
             break;
+        case "chart_Outils_com":
+            chartOutilsCom = new Chart(chart, config);
+            break;
+        case "chartMoyEduLevel":
+            chartMoyEduLevel = new Chart(chart, config);
+            break;
     }
 }
 
@@ -173,7 +216,7 @@ function ChargerData() {
         });
         request1.done(function (output) {
             let dataString = JSON.stringify(output);
-            res_questionnaire_NA = JSON.parse(dataString);
+            res_questionnaire_NA = dataFiltre(JSON.parse(dataString), seuilMonetaire);
         });
         let request2 = $.ajax({
             type: "GET",
@@ -181,7 +224,7 @@ function ChargerData() {
         });
         request2.done(function (output) {
             let dataString = JSON.stringify(output);
-            res_questionnaire_WE = JSON.parse(dataString);
+            res_questionnaire_WE = dataFiltre(JSON.parse(dataString), seuilMonetaire);
         });
         $.when(request1, request2).done(function () {
             resolve();
@@ -433,19 +476,6 @@ function loadRadarChart(salaireParTrancheAnneesExp, frameworks, salaireMoyen, id
     }
 }
 
-// Permet de créer et mettre à jour la liste des pays de la balise select(dropdown) à l'identifiant select-derou_pays.
-// La liste des pays est calculé en fonction du questionnaire (res_questionnaire) choisi (NA ou WE)
-function createCountriesDropDown(res_questionnaire) {
-    let select = document.getElementById("select-derou_pays");
-    let countries = listUniqueReponses(res_questionnaire, "Country");
-    countries.forEach((country) => {
-        let option = document.createElement('option');
-        option.value = country;
-        option.text = country;
-        select.appendChild(option);
-    });
-}
-
 // À partir d'une liste créer un dictionnaire. 
 // Les éléments sont transformés en clé. On affecte le numérique 0 à chaque clé si list false sinon on affecte une list vide
 // Retourne le dictionnaire
@@ -507,6 +537,77 @@ function createDropDown(id, list) {
         let option = document.createElement('option');
         option.value = elem;
         option.text = elem;
+        select.appendChild(option);
+    });
+}
+
+// Permet de calculer le nombre d'os en fonction d'un métier.
+// Renvoie 1 listes. Indice 1 : liste des os utilisé dans ce métier. Indice 2 nbr utilisateurs de l'os
+function NbrOutilsComParMetier(res_questionnaire, metier, n){
+    let nbOutilsCom= {};
+    for (let res of res_questionnaire) {
+        if(res["OfficeStackSyncHaveWorkedWith"]=="NA" || res["DevType"]=="NA" || res["DevType"]=="" || res["OfficeStackSyncHaveWorkedWith"]=="" || res["DevType"]!=metier)
+            continue;
+        let listOutilsCom= res["OfficeStackSyncHaveWorkedWith"].split(';'); //Les OS d'une personne
+        for(outil of listOutilsCom) {
+            if(!nbOutilsCom.hasOwnProperty(outil))
+            nbOutilsCom[outil]=0;
+            nbOutilsCom[outil]+=1;
+        }
+    }
+    let [listOutilsCom, nbOutilsComTriees] = trierDictionnaireToList(nbOutilsCom)
+    return [listOutilsCom.slice(0,n), nbOutilsComTriees.slice(0,n), listOutilsCom.length];
+}
+
+// Calcule le salaire moyen par niveau d'éducation pour un pays donné ou tous les pays
+// res_questionnaire : dataset contenant les données sur les salaires et le niveau education
+// pays : pays spécifique pour lequel calculer le salaire moyen (par défaut: tous les pays)
+function salaireMoyenParEducationPays(res_questionnaire, pays = SELECT_TOUS_LES_PAYS) {
+    let salairesPays;
+
+    if (pays === SELECT_TOUS_LES_PAYS) {
+        salairesPays = res_questionnaire;
+    } else {
+        salairesPays = res_questionnaire.filter(res => res["Country"] === pays);
+    }
+
+    let niveauxEducation = [];
+    let moyennesSalariales = [];
+    let revenuParEducation = {};
+
+    salairesPays.forEach(res => {
+        let niveauEducation = res["EdLevel"];
+        let salaire = parseFloat(res["CompTotal"]);
+
+        if (niveauEducation && !isNaN(salaire)) {
+            if (!revenuParEducation.hasOwnProperty(niveauEducation)) {
+                revenuParEducation[niveauEducation] = { sum: 0, count: 0 };
+            }
+
+            revenuParEducation[niveauEducation].sum += salaire;
+            revenuParEducation[niveauEducation].count += 1;
+        }
+    });
+
+    for (let niveau in revenuParEducation) {
+        let { sum, count } = revenuParEducation[niveau];
+        let moyenne = sum / count;
+        niveauxEducation.push(niveau);
+        moyennesSalariales.push(moyenne.toFixed(2));
+    }
+
+    return [niveauxEducation, moyennesSalariales];
+}
+
+// Permet de créer et mettre à jour la liste des pays de la balise select(dropdown) à l'identifiant select-derou_pays.
+// La liste des pays est calculé en fonction du questionnaire (res_questionnaire) choisi (NA ou WE)
+function createCountriesDropDown(res_questionnaire) {
+    let select = document.getElementById("select-derou_pays");
+    let countries = listUniqueReponses(res_questionnaire, "Country");
+    countries.forEach((country) => {
+        let option = document.createElement('option');
+        option.value = country;
+        option.text = country;
         select.appendChild(option);
     });
 }
