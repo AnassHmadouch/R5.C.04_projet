@@ -8,6 +8,9 @@ Configuration d'un dépôt Git distant :
    - git config --global user.name <username>
    - git config --global user.email <email_git>
 
+Pour clone un projet Git : 
+   - git clone <url_https>
+
 La récupération d'un dépôt Git sur son poste :
    - git pull ou git pull origin <nom_branche>
      
