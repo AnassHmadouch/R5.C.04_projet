@@ -1,3 +1,5 @@
+const WE = "WE"
+const NA = "NA"
 const URL_DATA_NA = "../../data/survey_results_NA.JSON";
 const URL_DATA_WE = "../../data/survey_results_WE.JSON";
 
