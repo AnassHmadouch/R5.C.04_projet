@@ -34,7 +34,7 @@ $(document).ready(function () {
                 titreDataset = 'Salaire Moyen par pays';
                 titreChart = "Salaire Moyen par pays";
                 [dataX, dataY] = revenuMoyenParPays(res_questionnaire_WE);
-                loadChart(dataX, dataY, titreDataset, titreChart, idChart);
+                loadChart(dataX, dataY, titreDataset, titreChart, idChart, "polarArea");
                 break;
             // Page revenusFrameworks.html
             case "framework":
@@ -177,7 +177,7 @@ function loadChart(dataX, dataY, titreDataSet, titreChart, idChart, type="bar") 
         }]
     };
     const options = {
-        responsive: true, 
+        responsive: true,
         scales: {
             y: {beginAtZero: true}
         },
@@ -196,6 +196,7 @@ function loadChart(dataX, dataY, titreDataSet, titreChart, idChart, type="bar") 
     let chart = document.getElementById(idChart);
     switch(idChart){
         case "chart_moyen":
+            config["options"]["maintainAspectRatio"]=false;
             chartMoyen = new Chart(chart, config);
             break;
         case "chart_OS":
@@ -205,9 +206,11 @@ function loadChart(dataX, dataY, titreDataSet, titreChart, idChart, type="bar") 
             chartOutilsCom = new Chart(chart, config);
             break;
         case "chartMoyEduLevel":
+            config["options"]["indexAxis"]='y';
             chartMoyEduLevel = new Chart(chart, config);
             break;
     }
+    chart.resize();
 }
 
 // Charge les deux fichier (NA, WE) de données json sur le questionnaire (survey)
@@ -478,6 +481,7 @@ function loadRadarChart(salaireParTrancheAnneesExp, frameworks, salaireMoyen, id
             chartCloud = new Chart(chart, config);
             break;       
     }
+    chart.resize();
 }
 
 // À partir d'une liste créer un dictionnaire. 
